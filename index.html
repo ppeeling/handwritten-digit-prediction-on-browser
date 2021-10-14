@@ -11,7 +11,7 @@
 <body>
   <div class="container">
     <h1 class="title">Hand-written digits recognition with WebAssembly generated from MATLAB</h1>
-    <h2 class="subtitle">Using shallow network</h2>
+    <h2 class="subtitle">Using MNIST network imported from ONNX</h2>
     <div class="columns is-centered">
       <div class="column is-narrow">
         <canvas id="draw-area" width="280" height="280" style="border: 2px solid;"></canvas>
@@ -84,7 +84,7 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.8.0"></script>
-  <script async type="text/javascript" src="js/digitprediction.js"></script>
+  <script async type="text/javascript" src="js/my_predict.js"></script>
   <script>
     // init SignaturePad
     const drawElement = document.getElementById('draw-area');
@@ -115,25 +115,22 @@
     function getAccuracyScores(imageData) {
 
       let inputs = [];
-      let length = 28 * 28; // サイズ 28x28
+      let length = 28 * 28;
 
-      //for (let i = 0; i < length; i++) { // テスト用（乱数入力） 
-      //  inputs.push(Math.random());
-      //}
-      for (let i = 0; i < length * 4; i = i + 4) { // 画像入力
+      for (let i = 0; i < length * 4; i = i + 4) {
         inputs.push(imageData.data[i]/255);
       }
       console.log(inputs); // Create Data var
 
-      var Inputs = new Float64Array(inputs);
-      var Outputs = new Float64Array(10);
+      var Inputs = new Float32Array(inputs);
+      var Outputs = new Float32Array(10);
       // Move Data to Heap var
       var Inputsbytes = _arrayToHeap(Inputs);
       var Outputsbytes = _arrayToHeap(Outputs);
       // Run Function
-      Module._digitprediction_initialize();
-      Module._digitPredictFcn(Inputsbytes.byteOffset, Outputsbytes.byteOffset)
-      Module._digitprediction_terminate();
+      Module._my_predict_initialize();
+      Module._my_predict(Inputsbytes.byteOffset, Outputsbytes.byteOffset)
+      Module._my_predict_terminate();
       // Copy Data from Heap 
       Outputs = _heapToArray(Outputsbytes, Outputs);
       var outputs = Array.from(Outputs);
@@ -154,7 +151,7 @@
       const maxAccuracy = accuracyScores.indexOf(Math.max.apply(null, accuracyScores));
 
       const elements = document.querySelectorAll(".accuracy");
-      elements.forEach(el => {
+        elements.forEach(el => {
         el.parentNode.classList.remove('is-selected');
         const rowIndex = Number(el.dataset.rowIndex);
         if (maxAccuracy === rowIndex) {
@@ -185,7 +182,7 @@
     }
     // Emscripten Heap to JavasSript Array
     function _heapToArray(heapBytes, array) {
-      return new Float64Array(
+      return new Float32Array(
         heapBytes.buffer,
         heapBytes.byteOffset,
         heapBytes.length / array.BYTES_PER_ELEMENT);
